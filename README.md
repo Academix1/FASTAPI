@@ -68,7 +68,7 @@ Now, visit `http://127.0.0.1:8000` in your browser, and you should see:
 ### Day 2
 - Day2 We Will Deal With Basic CRUD Operation
 
-```fastapi
+```python
 from fastapi import FastAPI
 from pydantic import BaseModel
 
