@@ -168,3 +168,52 @@ class Movie(MovieBase):
     class Config:
         orm_mode = True  # Tells Pydantic to read the ORM data correctly
 ```
+
+#### main.py
+
+```python
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+import models, schemas
+from database import SessionLocal, engine
+
+# Create the database tables if they don't already exist
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+# Dependency to get the database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Route to create a new movie (POST request)
+@app.post("/movies/", response_model=schemas.Movie, status_code=status.HTTP_201_CREATED)
+def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
+    db_movie = db.query(models.Movie).filter(models.Movie.title == movie.title).first()
+    if db_movie:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Movie already exists")
+    
+    # Create a new movie instance
+    db_movie = models.Movie(
+        title=movie.title,
+        director=movie.director,
+        release_year=movie.release_year,
+        poster_url=movie.poster_url or "",  # Allow poster_url to be empty
+        price=movie.price
+    )
+    
+    # Add to database session and commit
+    db.add(db_movie)
+    db.commit()
+    db.refresh(db_movie)  # Refresh to get the generated ID
+
+    # Return the newly created movie
+    return db_movie
+
+
+```
+
