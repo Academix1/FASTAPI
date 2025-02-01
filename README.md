@@ -216,4 +216,53 @@ def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
 
 
 ```
+### Day4 
+
+#### `Main.py`
+
+```python
+
+# Route to get all movies
+@app.get("/movies", response_model=list[schemas.Movie])
+def get_movies(db: Session = Depends(get_db)):
+    movies = db.query(models.Movie).all()
+    return movies
+
+@app.get("/movies/{movie_id}", response_model=schemas.Movie)
+def get_movie(movie_id: int, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if movie is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    return movie
+
+@app.put("/movies/{movie_id}", response_model=schemas.Movie)
+def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depends(get_db)):
+    db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if db_movie is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+
+    # Update movie fields
+    db_movie.title = movie.title
+    db_movie.director = movie.director
+    db_movie.release_year = movie.release_year
+    db_movie.poster_url = movie.poster_url or db_movie.poster_url  # Keep old poster_url if not provided
+    db_movie.price = movie.price
+
+    db.commit()
+    db.refresh(db_movie)  # Refresh to get the updated data
+
+    return db_movie
+
+# Route to delete a movie (DELETE request)
+@app.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+    db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if db_movie is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+
+    db.delete(db_movie)
+    db.commit()
+    return {"message": "Movie deleted successfully"}
+
+```
 
