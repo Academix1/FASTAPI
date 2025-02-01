@@ -322,5 +322,132 @@ const MoviesList = () => {
 
 export default MoviesList;
 ```
+### Day 6
 
+#### `test_app.py`
+
+````python
+import pytest
+from fastapi.testclient import TestClient
+from main import app
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from database import Base
+import models
+
+# Setup the testing database
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create the tables for testing
+Base.metadata.create_all(bind=engine)
+
+@pytest.fixture(scope="module")
+def test_db():
+    # Create a new database session
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@pytest.fixture(scope="module")
+def client():
+    # Use TestClient to interact with the FastAPI app
+    client = TestClient(app)
+    yield client
+
+# Test creating a movie
+def test_create_movie(client, test_db):
+    response = client.post("/movies/", json={
+        "title": "Inception",
+        "director": "Christopher Nolan",
+        "release_year": 2010,
+        "poster_url": "inception.jpg",
+        "price": 15.99
+    })
+    
+    assert response.status_code == 201
+    assert response.json()["title"] == "Inception"
+    assert response.json()["director"] == "Christopher Nolan"
+    assert response.json()["release_year"] == 2010
+    assert response.json()["price"] == 15.99
+
+# Test getting a movie by ID
+def test_get_movie(client, test_db):
+    # First, create a movie to get
+    create_response = client.post("/movies/", json={
+        "title": "Interstellar",
+        "director": "Christopher Nolan",
+        "release_year": 2014,
+        "poster_url": "interstellar.jpg",
+        "price": 19.99
+    })
+    
+    movie_id = create_response.json()["id"]
+
+    # Now, retrieve the movie by its ID
+    response = client.get(f"/movies/{movie_id}")
+    
+    assert response.status_code == 200
+    assert response.json()["title"] == "Interstellar"
+    assert response.json()["director"] == "Christopher Nolan"
+    assert response.json()["release_year"] == 2014
+    assert response.json()["price"] == 19.99
+
+# Test getting all movies
+def test_get_movies(client, test_db):
+    # Add multiple movies
+    client.post("/movies/", json={
+        "title": "Dunkirk",
+        "director": "Christopher Nolan",
+        "release_year": 2017,
+        "poster_url": "dunkirk.jpg",
+        "price": 14.99
+    })
+    
+    client.post("/movies/", json={
+        "title": "The Dark Knight",
+        "director": "Christopher Nolan",
+        "release_year": 2008,
+        "poster_url": "dark_knight.jpg",
+        "price": 12.99
+    })
+
+    # Get the list of movies
+    response = client.get("/movies")
+    
+    assert response.status_code == 200
+    assert len(response.json()) >= 2  # We should have at least 2 movies created
+
+# Test creating a movie that already exists
+def test_create_duplicate_movie(client, test_db):
+    # Create a movie
+    client.post("/movies/", json={
+        "title": "The Prestige",
+        "director": "Christopher Nolan",
+        "release_year": 2006,
+        "poster_url": "prestige.jpg",
+        "price": 18.99
+    })
+    
+    # Try to create the same movie again
+    response = client.post("/movies/", json={
+        "title": "The Prestige",
+        "director": "Christopher Nolan",
+        "release_year": 2006,
+        "poster_url": "prestige.jpg",
+        "price": 18.99
+    })
+    
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Movie already exists"
+
+# Test cleanup: Delete the database file after the test
+import os
+def cleanup():
+    if os.path.exists("test.db"):
+        os.remove("test.db")
+````
 
