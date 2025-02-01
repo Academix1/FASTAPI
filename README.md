@@ -265,4 +265,62 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     return {"message": "Movie deleted successfully"}
 
 ```
+### Day 5
+
+#### React
+
+```js
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const MoviesList = () => {
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetching the movie data from the FastAPI backend
+  useEffect(() => {
+    axios
+      .get("http://localhost:8000/movies") // Replace with your FastAPI URL
+      .then((response) => {
+        setMovies(response.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("There was an error fetching the movies!", error);
+        setLoading(false);
+      });
+  }, []); // Empty array ensures the useEffect runs only once after the component mounts
+
+  if (loading) {
+    return <p>Loading movies...</p>;
+  }
+
+  return (
+    <div>
+      <h1>Movie List</h1>
+      {movies.length > 0 ? (
+        <div>
+          {movies.map((movie) => (
+            <div key={movie.id}>
+              <h3>{movie.title}</h3>
+              {movie.poster_url && (
+                <img
+                  src={`http://localhost:8000/${movie.poster_url}`}
+                  alt={`${movie.title} Poster`}
+                  style={{ width: "150px", height: "200px" }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>No movies found.</p>
+      )}
+    </div>
+  );
+};
+
+export default MoviesList;
+```
+
 
