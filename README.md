@@ -1,8 +1,6 @@
 ## Day 1
 
 ### Basic Installations
-Here's a comprehensive **Day 1 and Day 2** guide to **FastAPI CRUD operations** from scratch. We'll set up the FastAPI application, create a simple in-memory movie list, and perform CRUD operations.
-
 ---
 
 ### **Day 1: Installing and Introducing Python (venv and FastAPI)**
